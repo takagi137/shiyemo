@@ -1,0 +1,48 @@
+# 可选：小内存服务器覆盖层。需要 Docker Compose 2.24.4+（!override）。
+# docker compose -f docker-compose.yml -f docker-compose.server.yml up -d
+
+services:
+  nginx:
+    # !override 是必须的：Compose 默认「合并」ports 列表而非替换，
+    # 不加这个标签，基础配置里的 "80:80" 会被保留，
+    # 避免与已有反向代理入口冲突。
+    ports: !override ["${APP_BIND_ADDRESS:-127.0.0.1}:${APP_HTTP_PORT:-8090}:80"]
+    mem_limit: 64m
+
+  web:
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: /api/v1
+        NODE_OPTIONS: --max-old-space-size=768   # 限制构建期堆，防 OOM
+        # 该机访问 registry.npmjs.org 极不稳定，npm install 常卡死，走国内镜像
+        NPM_REGISTRY: https://registry.npmmirror.com
+    mem_limit: 256m
+
+  api:
+    build:
+      args:
+        # 这台机器无法访问 proxy.golang.org（实测超时），必须走国内镜像
+        GOPROXY: https://goproxy.cn,direct
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      MEILI_KEY: ${MEILI_KEY:?Set MEILI_KEY in .env}
+      STORAGE_TYPE: local        # 上传走本地盘 + nginx /uploads/ 代理（MinIO 备用）
+    mem_limit: 128m
+
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    mem_limit: 256m
+
+  redis:
+    mem_limit: 64m
+
+  meilisearch:
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_KEY:?Set MEILI_KEY in .env}
+    mem_limit: 320m
+
+  minio:
+    # 不映射宿主端口；通过容器网络访问
+    mem_limit: 192m

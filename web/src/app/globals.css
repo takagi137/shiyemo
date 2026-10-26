@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+/*
+ * ============================================================
+ * 设计系统
+ * ============================================================
+ *
+ * 注意（历史问题）：card / btn-primary / btn-secondary / input-field
+ * 这四个类在 18 个页面共 136 处被使用。2026-05-28 前端从 Tailwind v3
+ * 迁到 v4 时 globals.css 被重置为默认模板，导致定义丢失、全站样式失效。
+ * 修改本文件时务必确认这些类仍然存在。
+ *
+ * 用 @layer components 而非 @utility：页面存在 `btn-primary text-sm px-4 py-2`
+ * 这类用工具类覆盖组件默认值的写法，components 层优先级低于 utilities 才能生效。
+ */
+
+@theme {
+  /* ── 字体 ────────────────────────────────────────────────
+   * Geist 不含 CJK 字形，中文会 fallback 到系统默认（常是宋体，观感廉价）。
+   * 因此显式声明中文字体栈，覆盖 macOS / iOS / Windows / Android / Linux。 */
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Source Han Sans SC", "Noto Sans CJK SC", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* ── 语义色 ──────────────────────────────────────────────
+   * 产品是面向失业人群的情绪疗愈社区，主张「慢慢来，没有人在催你」。
+   * 因此整体走暖调低饱和：不刺激、不催促、长时间阅读不疲劳。 */
+
+  /* 画布与表面：暖白而非冷灰，减少「后台系统」观感 */
+  --color-canvas:       oklch(98.6% 0.004 85);
+  --color-surface:      oklch(100% 0 0);
+  --color-surface-sunk: oklch(96.8% 0.005 85);
+
+  /* 文字：暖调近黑，比纯黑柔和 */
+  --color-ink:       oklch(28% 0.012 60);
+  --color-ink-soft:  oklch(48% 0.012 60);
+  --color-ink-faint: oklch(64% 0.010 60);
+
+  /* 描边 */
+  --color-line:      oklch(92.5% 0.005 70);
+  --color-line-soft: oklch(95.5% 0.004 70);
+
+  /* 主色：深鼠尾草绿。
+   * 选它而非蓝色——蓝色是通用后台色，缺少温度；
+   * 也不用红/橙——对焦虑人群带警示意味。绿色指向生长与平静。 */
+  --color-accent:       oklch(48% 0.075 165);
+  --color-accent-hover: oklch(42% 0.075 165);
+  --color-accent-soft:  oklch(95.5% 0.022 165);
+  --color-accent-line:  oklch(88% 0.045 165);
+
+  /* ── 帖子类型色 ──────────────────────────────────────────
+   * 5 种类型统一在同一明度与彩度上，仅靠色相区分。
+   * 这样并排出现时不会互相争夺注意力（原方案是 5 个高饱和撞色）。
+   * 色相均匀铺开，保证色弱用户也能借助明度与图标区分。 */
+
+  /* 情绪共鸣 — 灰玫瑰 */
+  --color-emotion-soft: oklch(96.5% 0.014 15);
+  --color-emotion-line: oklch(89% 0.035 15);
+  --color-emotion-ink:  oklch(50% 0.085 15);
+
+  /* 认知构建 — 赭黄 */
+  --color-insight-soft: oklch(96.5% 0.020 80);
+  --color-insight-line: oklch(89% 0.045 80);
+  --color-insight-ink:  oklch(48% 0.080 80);
+
+  /* 案例分享 — 雾蓝 */
+  --color-case-soft: oklch(96.5% 0.014 235);
+  --color-case-line: oklch(89% 0.032 235);
+  --color-case-ink:  oklch(50% 0.075 235);
+
+  /* 行动发起 — 鼠尾草绿 */
+  --color-action-soft: oklch(96.5% 0.018 155);
+  --color-action-line: oklch(89% 0.040 155);
+  --color-action-ink:  oklch(48% 0.075 155);
+
+  /* 成果展示 — 暖梅 */
+  --color-achievement-soft: oklch(96.5% 0.016 330);
+  --color-achievement-line: oklch(89% 0.034 330);
+  --color-achievement-ink:  oklch(50% 0.080 330);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+  }
+
+  a {
+    transition-property: color, background-color, border-color, opacity;
+    transition-duration: 200ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  /* 中文正文默认加一点字距与行高，长文阅读更松弛 */
+  p, li {
+    line-height: 1.75;
+  }
+}
+
+@layer components {
+  .card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-xl);
+    transition: border-color 250ms var(--ease-out), box-shadow 250ms var(--ease-out);
+  }
+  /* 悬停只做极轻微的描边加深，不位移、不投影 —
+   * 位移动画在信息流里连续出现时非常躁动，与产品调性相悖。 */
+  .card:hover {
+    border-color: var(--color-line);
+    box-shadow: 0 1px 2px oklch(28% 0.012 60 / 0.04), 0 4px 12px oklch(28% 0.012 60 / 0.04);
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.5rem;
+    border-radius: var(--radius-lg);
+    background-color: var(--color-accent);
+    color: var(--color-surface);
+    font-weight: 500;
+    transition: background-color 200ms var(--ease-out);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-accent-hover);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-line);
+    background-color: var(--color-surface);
+    color: var(--color-ink-soft);
+    font-weight: 500;
+    transition: background-color 200ms var(--ease-out), border-color 200ms var(--ease-out);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-surface-sunk);
+    border-color: var(--color-ink-faint);
+  }
+  .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .input-field {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+    transition: border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+  }
+  .input-field::placeholder {
+    color: var(--color-ink-faint);
+  }
+  .input-field:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
+  }
+
+  .gradient-text {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(
+      to right,
+      var(--color-accent),
+      oklch(52% 0.070 130)
+    );
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* 隐藏横向滚动条但保留滚动能力（用于 feed 筛选行等横向滚动区）。
+   * 替代之前无效的 Tailwind 任意变体 `[&::-webkit-scrollbar]{display:none}`。 */
+  .scroll-x-hidden {
+    scrollbar-width: none; /* Firefox */
+  }
+  .scroll-x-hidden::-webkit-scrollbar {
+    display: none; /* Chrome / Safari */
+  }
+}

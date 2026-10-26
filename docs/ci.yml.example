@@ -1,0 +1,190 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend:
+    name: Backend (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: shiyemo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: test
+      DB_PASSWORD: test
+      DB_NAME: shiyemo_test
+      GIN_MODE: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # 必须与 server/go.mod 的 go 指令一致。曾钉在 1.23 而 go.mod 要求 1.24.0，
+          # 靠 GOTOOLCHAIN=auto 隐式下载 1.24.11 才没红 —— CI 声明的版本和实际跑的版本不是同一个。
+          go-version: "1.24"
+          cache-dependency-path: server/go.sum
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Go test
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: server/coverage.out
+
+      - name: Go build
+        run: go build -o /dev/null ./cmd/...
+
+  # 全新部署验证 — 直接回答"干净环境能不能起来"。
+  # 历史教训：迁移文件与 Go 模型长期脱节（缺表/列名错/enum 不一致），
+  # 而单元测试用 mock、从不跑真实迁移，导致这些"全新部署必崩"的 bug 潜伏两个月。
+  # 本 job 用全新 postgres 从零应用全部迁移（失败即红）+ schema 漂移检测 +
+  # 集成测试端到端（register/create post 真实打库）。
+  fresh-deploy:
+    name: Fresh-deploy validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: shiyemo
+          POSTGRES_PASSWORD: shiyemo123
+          POSTGRES_DB: shiyemo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shiyemo"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # 必须与 server/go.mod 的 go 指令一致。曾钉在 1.23 而 go.mod 要求 1.24.0，
+          # 靠 GOTOOLCHAIN=auto 隐式下载 1.24.11 才没红 —— CI 声明的版本和实际跑的版本不是同一个。
+          go-version: "1.24"
+          cache-dependency-path: server/go.sum
+
+      # ① 从零应用全部迁移 —— 任一失败即红（会抓出列名错/依赖倒置）
+      - name: Apply migrations from scratch
+        working-directory: .
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: shiyemo
+          PGPASSWORD: shiyemo123
+          PGDATABASE: shiyemo
+        run: bash scripts/apply-migrations.sh
+
+      # ② Schema 漂移检测 —— Go 模型 vs 实际列（会抓出缺表/缺列）
+      - name: Check schema drift
+        working-directory: .
+        run: |
+          python3 scripts/check-schema-drift.py \
+            --host localhost --port 5432 --user shiyemo --password shiyemo123 --db shiyemo
+
+      # ③ 集成测试端到端 —— 真实迁移 + register/create post 打库
+      #    （setup_test.go 已修为迁移失败即 Fatal，不再吞错误）
+      - name: Integration tests (real DB + real migrations)
+        env:
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: "5432"
+        run: go test -v -count=1 ./tests/integration/...
+
+      # ④ baseline 守护 —— schema_baseline.sql == 重放全部迁移的结果 +
+      #    covered.txt == 迁移清单。防「全新安装(load baseline) / 升级(migrate)」两套逻辑漂移。
+      #    在独立 DB(baseline_check) 上重放，避免与步骤①的 shiyemo 库冲突。
+      #    注：baseline 用 PG15 生成；若 runner 的 pg_dump 版本导致格式差异误红，
+      #    需在此步骤前 apt 安装 postgresql-client-15 并置于 PATH 前。
+      - name: Verify schema baseline
+        working-directory: .
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: shiyemo
+          PGPASSWORD: shiyemo123
+          PGDATABASE: baseline_check
+        run: |
+          createdb -h localhost -U shiyemo baseline_check
+          bash scripts/verify-baseline.sh
+
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      # 设计系统契约检查 —— 防止 globals.css 令牌/组件类静默丢失。
+      # 历史教训：v3→v4 迁移时 .card/.btn-primary 等定义丢失，
+      # 而 Tailwind 对未定义类只静默跳过、构建照样通过，静默失效两个月。
+      - name: Check design system contract
+        run: node scripts/check-design.mjs --css
+
+  # 部署任务 — 仅 main/master push 触发，且前两个 job 都通过
+  deploy:
+    name: Deploy
+    needs: [backend, fresh-deploy, frontend]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Placeholder — 接入实际部署脚本
+        run: echo "Deploy step ready. Wire up your deployment target here."

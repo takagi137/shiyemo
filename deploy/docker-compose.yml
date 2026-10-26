@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # Nginx 反向代理（统一入口 - 80端口）
+  nginx:
+    image: nginx:alpine
+    container_name: shiyemo-nginx
+    ports:
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_HTTP_PORT:-8090}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
+      - api
+    restart: unless-stopped
+
+  # 前端应用
+  web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api/v1
+        IMAGE_REMOTE_ORIGINS: ${IMAGE_REMOTE_ORIGINS:-}
+    container_name: shiyemo-web
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # 后端 API
+  api:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    container_name: shiyemo-api
+    environment:
+      APP_MODE: ${APP_MODE:-release}
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost:8090}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: shiyemo
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      DB_NAME: shiyemo
+      REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      STORAGE_UPLOAD_DIR: /app/uploads
+      STORAGE_BASE_URL: /uploads
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
+      MINIO_BUCKET: shiyemo
+      MINIO_USE_SSL: "false"
+      MINIO_BASE_URL: http://localhost:9000
+      MEILI_URL: http://meilisearch:7700
+      MEILI_KEY: ${MEILI_KEY:?Set MEILI_KEY in .env}
+      SMTP_ENABLED: ${SMTP_ENABLED:-false}
+      SMTP_HOST: ${SMTP_HOST:-smtp.example.com}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@example.com}
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    restart: unless-stopped
+
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: shiyemo-db
+    environment:
+      POSTGRES_USER: shiyemo
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      POSTGRES_DB: shiyemo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: shiyemo-redis
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # Meilisearch 搜索引擎
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: shiyemo-search
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_KEY:?Set MEILI_KEY in .env}
+    volumes:
+      - meili_data:/meili_data
+    restart: unless-stopped
+
+  # MinIO 对象存储
+  minio:
+    image: minio/minio:latest
+    container_name: shiyemo-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  meili_data:
+  uploads_data:
+  minio_data:

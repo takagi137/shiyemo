@@ -1,0 +1,75 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+uploads/
+tmp/
+*.log
+
+# 编译产物
+server/shiyemo
+server/shiyemo-*
+server/cmd/cmd
+server/cmd/cmd.exe
+server/*.exe
+
+# 测试覆盖率
+server/coverage*.out
+server/cover.out
+server/ucover.out
+
+# Windows 重定向残留
+nul
+
+# 进程日志
+server/nul
+
+# 前端备份（已废弃）
+web-backup/
+web-backup-old/
+
+# 环境配置
+.env
+.env.local
+.env.production
+.env.*.local
+deploy/.env
+deploy/.env.*
+web.tar
+
+# Public source excludes deployment state and generated artifacts.
+.env.*
+!**/.env.example
+*.tar
+*.tar.gz
+*.zip
+*.db
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+**/backups/
+**/node_modules/
+**/.next/
+**/__pycache__/

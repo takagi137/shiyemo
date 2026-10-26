@@ -1,0 +1,142 @@
+{
+  "__tests__/Button.test.tsx": {
+    "colors": 3,
+    "emoji": 0
+  },
+  "__tests__/DailyTip.test.tsx": {
+    "colors": 0,
+    "emoji": 1
+  },
+  "__tests__/Input.test.tsx": {
+    "colors": 1,
+    "emoji": 0
+  },
+  "__tests__/RichTextEditor.test.tsx": {
+    "colors": 5,
+    "emoji": 0
+  },
+  "app/admin/comments/page.tsx": {
+    "colors": 29,
+    "emoji": 1
+  },
+  "app/admin/feedback/page.tsx": {
+    "colors": 71,
+    "emoji": 1
+  },
+  "app/admin/images/page.tsx": {
+    "colors": 44,
+    "emoji": 0
+  },
+  "app/admin/moderation/page.tsx": {
+    "colors": 28,
+    "emoji": 2
+  },
+  "app/admin/page.tsx": {
+    "colors": 78,
+    "emoji": 19
+  },
+  "app/admin/reports/page.tsx": {
+    "colors": 38,
+    "emoji": 1
+  },
+  "app/admin/review/page.tsx": {
+    "colors": 21,
+    "emoji": 0
+  },
+  "app/bookmarks/page.tsx": {
+    "colors": 9,
+    "emoji": 0
+  },
+  "app/checkin/page.tsx": {
+    "colors": 39,
+    "emoji": 0
+  },
+  "app/cohort/page.tsx": {
+    "colors": 35,
+    "emoji": 1
+  },
+  "app/components/MoodCurve.tsx": {
+    "colors": 33,
+    "emoji": 0
+  },
+  "app/feedback/page.tsx": {
+    "colors": 38,
+    "emoji": 3
+  },
+  "app/forgot-password/page.tsx": {
+    "colors": 25,
+    "emoji": 0
+  },
+  "app/notifications/page.tsx": {
+    "colors": 40,
+    "emoji": 4
+  },
+  "app/page.tsx": {
+    "colors": 19,
+    "emoji": 1
+  },
+  "app/posts/[id]/edit/page.tsx": {
+    "colors": 28,
+    "emoji": 0
+  },
+  "app/reset-password/page.tsx": {
+    "colors": 26,
+    "emoji": 0
+  },
+  "app/search/page.tsx": {
+    "colors": 39,
+    "emoji": 3
+  },
+  "app/users/[id]/page.tsx": {
+    "colors": 29,
+    "emoji": 0
+  },
+  "app/verify-email/confirm/page.tsx": {
+    "colors": 23,
+    "emoji": 0
+  },
+  "app/verify-email/page.tsx": {
+    "colors": 20,
+    "emoji": 0
+  },
+  "components/Avatar.tsx": {
+    "colors": 2,
+    "emoji": 0
+  },
+  "components/Button.tsx": {
+    "colors": 16,
+    "emoji": 0
+  },
+  "components/DailyScene.tsx": {
+    "colors": 7,
+    "emoji": 2
+  },
+  "components/DailyTip.tsx": {
+    "colors": 11,
+    "emoji": 2
+  },
+  "components/FreedomDayCard.tsx": {
+    "colors": 25,
+    "emoji": 0
+  },
+  "components/Icon.tsx": {
+    "colors": 0,
+    "emoji": 7
+  },
+  "components/Input.tsx": {
+    "colors": 9,
+    "emoji": 0
+  },
+  "components/LoadingSpinner.tsx": {
+    "colors": 1,
+    "emoji": 0
+  },
+  "components/RichTextEditor.tsx": {
+    "colors": 14,
+    "emoji": 0
+  },
+  "components/TrendChart.tsx": {
+    "colors": 15,
+    "emoji": 0
+  }
+}
